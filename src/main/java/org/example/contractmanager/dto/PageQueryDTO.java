@@ -5,9 +5,11 @@ package org.example.contractmanager.dto;
  * 用于接收前端的分页查询请求
  */
 public class PageQueryDTO {
-    private Integer pageNum = 1;  // 页码，默认第1页
+    private Integer pageNum = 1;  // 页码，默认的1页
     private Integer pageSize = 10;  // 每页大小，默认10条
     private String keyword;  // 搜索关键字（可选）
+    private String status;  // 合同状态（可选）
+    private Long clientId;  // 客户ID（可选）
     private String sortField;  // 排序字段（可选）
     private String sortOrder;  // 排序方式：ASC/DESC（可选）
 
@@ -53,5 +55,21 @@ public class PageQueryDTO {
 
     public void setSortOrder(String sortOrder) {
         this.sortOrder = sortOrder;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public Long getClientId() {
+        return clientId;
+    }
+
+    public void setClientId(Long clientId) {
+        this.clientId = clientId;
     }
 }

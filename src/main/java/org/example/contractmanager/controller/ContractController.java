@@ -15,6 +15,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/contracts")
+@CrossOrigin(origins = "*")
 public class ContractController {
 
     private final ContractService contractService;
@@ -114,6 +115,8 @@ public class ContractController {
         pageQuery.setPageNum(pageNum);
         pageQuery.setPageSize(pageSize);
         pageQuery.setKeyword(keyword);
+        pageQuery.setStatus(status);
+        pageQuery.setClientId(clientId);
         
         PageResultDTO<ContractDTO> pageResult = contractService.getContractsByPage(pageQuery);
         return Result.success(pageResult);

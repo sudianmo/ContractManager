@@ -1,13 +1,11 @@
 package org.example.contractmanager.service.impl;
 
-import org.example.contractmanager.repository.ClientRepository;
+import org.example.contractmanager.dao.ClientDao;
 import org.example.contractmanager.dto.ClientDTO;
 import org.example.contractmanager.dto.PageQueryDTO;
 import org.example.contractmanager.dto.PageResultDTO;
 import org.example.contractmanager.entity.Client;
 import org.example.contractmanager.service.ClientService;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,65 +14,61 @@ import java.util.stream.Collectors;
 @Service
 public class ClientServiceImpl implements ClientService {
 
-    private final ClientRepository clientRepository;
+    private final ClientDao clientDao;
 
-    public ClientServiceImpl(ClientRepository clientRepository) {
-        this.clientRepository = clientRepository;
+    public ClientServiceImpl(ClientDao clientDao) {
+        this.clientDao = clientDao;
     }
 
     @Override
     public boolean addClient(ClientDTO clientDTO) {
         Client client = convertToEntity(clientDTO);
-        clientRepository.save(client);
-        return true;
+        int result = clientDao.insert(client);
+        return result > 0;
     }
 
     @Override
     public boolean deleteClient(Long id) {
-        clientRepository.deleteById(id);
-        return true;
+        int result = clientDao.deleteById(id);
+        return result > 0;
     }
 
     @Override
     public boolean updateClient(ClientDTO clientDTO) {
         Client client = convertToEntity(clientDTO);
-        clientRepository.save(client);
-        return true;
+        int result = clientDao.update(client);
+        return result > 0;
     }
 
     @Override
     public ClientDTO getClientById(Long id) {
-        return clientRepository.findById(id)
-                .map(this::convertToDTO)
-                .orElse(null);
+        Client client = clientDao.selectById(id);
+        return client != null ? convertToDTO(client) : null;
     }
 
     @Override
     public List<ClientDTO> getAllClients() {
-        return clientRepository.findAll().stream()
+        return clientDao.selectAll().stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
     @Override
     public PageResultDTO<ClientDTO> getClientsByPage(PageQueryDTO pageQuery) {
-        PageRequest pageRequest = PageRequest.of(
-                pageQuery.getPageNum() - 1, 
-                pageQuery.getPageSize()
-        );
-        Page<Client> page = clientRepository.findAll(pageRequest);
+        int offset = (pageQuery.getPageNum() - 1) * pageQuery.getPageSize();
+        List<Client> clients = clientDao.selectByPage(offset, pageQuery.getPageSize());
+        long total = clientDao.count();
         
-        List<ClientDTO> records = page.getContent().stream()
+        List<ClientDTO> records = clients.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
         
-        return new PageResultDTO<>(page.getTotalElements(), records);
+        return new PageResultDTO<>(total, records);
     }
 
     @Override
     public List<ClientDTO> searchClients(String keyword) {
-        return clientRepository.findByClientNameContainingOrContactPersonContaining(keyword, keyword)
-                .stream()
+        return clientDao.searchByKeyword(keyword).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -84,11 +78,12 @@ public class ClientServiceImpl implements ClientService {
         dto.setId(client.getId());
         dto.setClientName(client.getClientName());
         dto.setContactPerson(client.getContactPerson());
-        dto.setPhone(client.getPhone());
-        dto.setEmail(client.getEmail());
+        dto.setContactPhone(client.getPhone());
+        dto.setContactEmail(client.getEmail());
         dto.setAddress(client.getAddress());
-        dto.setCompanyType(client.getCompanyType());
-        dto.setCreditLevel(client.getCreditLevel());
+        if (client.getRegistrationDate() != null) {
+            dto.setCreateTime(client.getRegistrationDate().toString());
+        }
         return dto;
     }
 
@@ -99,11 +94,9 @@ public class ClientServiceImpl implements ClientService {
         }
         client.setClientName(dto.getClientName());
         client.setContactPerson(dto.getContactPerson());
-        client.setPhone(dto.getPhone());
-        client.setEmail(dto.getEmail());
+        client.setPhone(dto.getContactPhone());
+        client.setEmail(dto.getContactEmail());
         client.setAddress(dto.getAddress());
-        client.setCompanyType(dto.getCompanyType());
-        client.setCreditLevel(dto.getCreditLevel());
         return client;
     }
 }

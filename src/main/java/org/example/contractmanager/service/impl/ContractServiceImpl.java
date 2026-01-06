@@ -1,13 +1,13 @@
 package org.example.contractmanager.service.impl;
 
-import org.example.contractmanager.repository.ContractRepository;
+import org.example.contractmanager.dao.ContractDao;
+import org.example.contractmanager.dao.ClientDao;
 import org.example.contractmanager.dto.ContractDTO;
 import org.example.contractmanager.dto.PageQueryDTO;
 import org.example.contractmanager.dto.PageResultDTO;
 import org.example.contractmanager.entity.Contract;
+import org.example.contractmanager.entity.Client;
 import org.example.contractmanager.service.ContractService;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,79 +16,99 @@ import java.util.stream.Collectors;
 @Service
 public class ContractServiceImpl implements ContractService {
 
-    private final ContractRepository contractRepository;
+    private final ContractDao contractDao;
+    private final ClientDao clientDao;
 
-    public ContractServiceImpl(ContractRepository contractRepository) {
-        this.contractRepository = contractRepository;
+    public ContractServiceImpl(ContractDao contractDao, ClientDao clientDao) {
+        this.contractDao = contractDao;
+        this.clientDao = clientDao;
     }
 
     @Override
     public boolean addContract(ContractDTO contractDTO) {
         Contract contract = convertToEntity(contractDTO);
-        contractRepository.save(contract);
-        return true;
+        int result = contractDao.insert(contract);
+        return result > 0;
     }
 
     @Override
     public boolean deleteContract(Long id) {
-        contractRepository.deleteById(id);
-        return true;
+        int result = contractDao.deleteById(id);
+        return result > 0;
     }
 
     @Override
     public boolean updateContract(ContractDTO contractDTO) {
         Contract contract = convertToEntity(contractDTO);
-        contractRepository.save(contract);
-        return true;
+        int result = contractDao.update(contract);
+        return result > 0;
     }
 
     @Override
     public ContractDTO getContractById(Long id) {
-        return contractRepository.findById(id)
-                .map(this::convertToDTO)
-                .orElse(null);
+        Contract contract = contractDao.selectById(id);
+        return contract != null ? convertToDTO(contract) : null;
     }
 
     @Override
     public List<ContractDTO> getAllContracts() {
-        return contractRepository.findAll().stream()
+        return contractDao.selectAll().stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
     @Override
     public PageResultDTO<ContractDTO> getContractsByPage(PageQueryDTO pageQuery) {
-        PageRequest pageRequest = PageRequest.of(
-                pageQuery.getPageNum() - 1,
-                pageQuery.getPageSize()
-        );
-        Page<Contract> page = contractRepository.findAll(pageRequest);
+        int offset = (pageQuery.getPageNum() - 1) * pageQuery.getPageSize();
+        List<Contract> contracts;
+        long total;
         
-        List<ContractDTO> records = page.getContent().stream()
+        // 根据筛选条件调用不同的DAO方法
+        if (pageQuery.getClientId() != null) {
+            contracts = contractDao.selectByClientId(pageQuery.getClientId());
+            total = contracts.size();
+        } else if (pageQuery.getStatus() != null && !pageQuery.getStatus().isEmpty()) {
+            contracts = contractDao.selectByStatus(pageQuery.getStatus());
+            total = contracts.size();
+        } else if (pageQuery.getKeyword() != null && !pageQuery.getKeyword().isEmpty()) {
+            contracts = contractDao.searchByKeyword(pageQuery.getKeyword());
+            total = contracts.size();
+        } else {
+            contracts = contractDao.selectByPage(offset, pageQuery.getPageSize());
+            total = contractDao.count();
+        }
+        
+        // 分页截取（对于筛选结果）
+        if (pageQuery.getClientId() != null || pageQuery.getStatus() != null || pageQuery.getKeyword() != null) {
+            int start = Math.min(offset, contracts.size());
+            int end = Math.min(offset + pageQuery.getPageSize(), contracts.size());
+            contracts = contracts.subList(start, end);
+        }
+            
+        List<ContractDTO> records = contracts.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
-        
-        return new PageResultDTO<>(page.getTotalElements(), records);
+            
+        return new PageResultDTO<>(total, records);
     }
 
     @Override
     public List<ContractDTO> getContractsByClientId(Long clientId) {
-        return contractRepository.findByClientId(clientId).stream()
+        return contractDao.selectByClientId(clientId).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<ContractDTO> getContractsByStatus(String status) {
-        return contractRepository.findByStatus(status).stream()
+        return contractDao.selectByStatus(status).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<ContractDTO> searchContracts(String keyword) {
-        return contractRepository.findByContractNoContainingOrContractNameContaining(keyword, keyword)
-                .stream()
+        return contractDao.searchByKeyword(keyword).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -99,12 +119,20 @@ public class ContractServiceImpl implements ContractService {
         dto.setContractNo(contract.getContractNo());
         dto.setContractName(contract.getContractName());
         dto.setClientId(contract.getClientId());
+        
+        // 查询客户名称
+        if (contract.getClientId() != null) {
+            Client client = clientDao.selectById(contract.getClientId());
+            if (client != null) {
+                dto.setClientName(client.getClientName());
+            }
+        }
+        
         dto.setAmount(contract.getAmount());
         dto.setSignDate(contract.getSignDate());
-        dto.setStartDate(contract.getStartDate());
         dto.setEndDate(contract.getEndDate());
         dto.setStatus(contract.getStatus());
-        dto.setDescription(contract.getDescription());
+        dto.setRemark(contract.getDescription());
         return dto;
     }
 
@@ -118,10 +146,9 @@ public class ContractServiceImpl implements ContractService {
         contract.setClientId(dto.getClientId());
         contract.setAmount(dto.getAmount());
         contract.setSignDate(dto.getSignDate());
-        contract.setStartDate(dto.getStartDate());
         contract.setEndDate(dto.getEndDate());
         contract.setStatus(dto.getStatus());
-        contract.setDescription(dto.getDescription());
+        contract.setDescription(dto.getRemark());
         return contract;
     }
 }

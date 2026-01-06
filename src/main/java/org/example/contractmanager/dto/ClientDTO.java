@@ -7,11 +7,12 @@ public class ClientDTO {
     private Long id;
     private String clientName;
     private String contactPerson;
-    private String phone;
-    private String email;
+    private String contactPhone;
+    private String contactEmail;
     private String address;
-    private String companyType;
-    private String creditLevel;
+    private String remark;
+    private String createTime;
+    private String updateTime;
 
     public ClientDTO() {
     }
@@ -41,20 +42,20 @@ public class ClientDTO {
         this.contactPerson = contactPerson;
     }
 
-    public String getPhone() {
-        return phone;
+    public String getContactPhone() {
+        return contactPhone;
     }
 
-    public void setPhone(String phone) {
-        this.phone = phone;
+    public void setContactPhone(String contactPhone) {
+        this.contactPhone = contactPhone;
     }
 
-    public String getEmail() {
-        return email;
+    public String getContactEmail() {
+        return contactEmail;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setContactEmail(String contactEmail) {
+        this.contactEmail = contactEmail;
     }
 
     public String getAddress() {
@@ -65,19 +66,27 @@ public class ClientDTO {
         this.address = address;
     }
 
-    public String getCompanyType() {
-        return companyType;
+    public String getRemark() {
+        return remark;
     }
 
-    public void setCompanyType(String companyType) {
-        this.companyType = companyType;
+    public void setRemark(String remark) {
+        this.remark = remark;
     }
 
-    public String getCreditLevel() {
-        return creditLevel;
+    public String getCreateTime() {
+        return createTime;
     }
 
-    public void setCreditLevel(String creditLevel) {
-        this.creditLevel = creditLevel;
+    public void setCreateTime(String createTime) {
+        this.createTime = createTime;
+    }
+
+    public String getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(String updateTime) {
+        this.updateTime = updateTime;
     }
 }

@@ -18,7 +18,9 @@ public class ContractDTO {
     private LocalDate startDate;
     private LocalDate endDate;
     private String status;
-    private String description;
+    private String remark;
+    private String createTime;
+    private String updateTime;
 
     public ContractDTO() {
     }
@@ -104,11 +106,27 @@ public class ContractDTO {
         this.status = status;
     }
 
-    public String getDescription() {
-        return description;
+    public String getRemark() {
+        return remark;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
+    public void setRemark(String remark) {
+        this.remark = remark;
+    }
+
+    public String getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(String createTime) {
+        this.createTime = createTime;
+    }
+
+    public String getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(String updateTime) {
+        this.updateTime = updateTime;
     }
 }

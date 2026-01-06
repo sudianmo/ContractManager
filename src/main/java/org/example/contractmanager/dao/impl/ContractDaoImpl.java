@@ -4,15 +4,18 @@ import org.example.contractmanager.dao.ContractDao;
 import org.example.contractmanager.entity.Contract;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.util.List;
 
 /**
- * 合同DAO实现类
- * 使用JdbcTemplate操作数据库
+ * 合同Dao实现类（人员2任务）
+ * 使用JdbcTemplate操作SQL Server数据库
  */
 @Repository
 public class ContractDaoImpl implements ContractDao {
@@ -26,85 +29,134 @@ public class ContractDaoImpl implements ContractDao {
     /**
      * RowMapper - 将ResultSet映射为Contract对象
      */
-    private final RowMapper<Contract> contractRowMapper = new RowMapper<Contract>() {
-        @Override
-        public Contract mapRow(ResultSet rs, int rowNum) throws SQLException {
-            Contract contract = new Contract();
-            // TODO: 根据实际数据库表字段完成映射
-            // contract.setId(rs.getLong("id"));
-            // contract.setContractNo(rs.getString("contract_no"));
-            // ...其他字段映射
-            return contract;
-        }
+    private final RowMapper<Contract> contractRowMapper = (rs, rowNum) -> {
+        Contract contract = new Contract();
+        contract.setId(rs.getLong("ContractID"));
+        contract.setContractNo(rs.getString("ContractNumber"));
+        contract.setContractName(rs.getString("ContractName")); // 允许NULL
+        contract.setProjectId(rs.getLong("ProjectID"));
+        contract.setEmployeeId(rs.getLong("EmployeeID"));
+        
+        // CustomerID允许NULL
+        Long customerId = rs.getObject("CustomerID", Long.class);
+        contract.setClientId(customerId);
+        
+        contract.setAmount(rs.getBigDecimal("Amount"));
+        
+        Date signDate = rs.getDate("SigningDate");
+        if (signDate != null) contract.setSignDate(signDate.toLocalDate());
+        
+        Date endDate = rs.getDate("ExpiryDate");
+        if (endDate != null) contract.setEndDate(endDate.toLocalDate());
+        
+        contract.setStatus(rs.getString("Status"));
+        contract.setDescription(rs.getString("Terms"));
+        contract.setTotalPayment(rs.getBigDecimal("TotalPayment"));
+        
+        return contract;
     };
 
     @Override
     public int insert(Contract contract) {
-        // TODO: 实现插入逻辑
-        String sql = "INSERT INTO contract (...) VALUES (...)";
-        return 0;
+        String sql = "INSERT INTO Contracts (ContractNumber, ContractName, ProjectID, EmployeeID, CustomerID, " +
+                     "Amount, SigningDate, ExpiryDate, Status, Terms, TotalPayment) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        
+        jdbcTemplate.update(connection -> {
+            PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            ps.setString(1, contract.getContractNo());
+            ps.setString(2, contract.getContractName());
+            ps.setLong(3, contract.getProjectId());
+            ps.setLong(4, contract.getEmployeeId());
+            
+            if (contract.getClientId() != null) {
+                ps.setLong(5, contract.getClientId());
+            } else {
+                ps.setNull(5, java.sql.Types.BIGINT);
+            }
+            
+            ps.setBigDecimal(6, contract.getAmount());
+            ps.setDate(7, contract.getSignDate() != null ? Date.valueOf(contract.getSignDate()) : null);
+            ps.setDate(8, contract.getEndDate() != null ? Date.valueOf(contract.getEndDate()) : null);
+            ps.setString(9, contract.getStatus() != null ? contract.getStatus() : "Signed");
+            ps.setString(10, contract.getDescription());
+            ps.setBigDecimal(11, contract.getTotalPayment() != null ? contract.getTotalPayment() : new java.math.BigDecimal("0.00"));
+            return ps;
+        }, keyHolder);
+        
+        return keyHolder.getKey() != null ? keyHolder.getKey().intValue() : 0;
     }
 
     @Override
     public int deleteById(Long id) {
-        // TODO: 实现删除逻辑
-        String sql = "DELETE FROM contract WHERE id = ?";
-        return 0;
+        String sql = "DELETE FROM Contracts WHERE ContractID = ?";
+        return jdbcTemplate.update(sql, id);
     }
 
     @Override
     public int update(Contract contract) {
-        // TODO: 实现更新逻辑
-        String sql = "UPDATE contract SET ... WHERE id = ?";
-        return 0;
+        String sql = "UPDATE Contracts SET ContractNumber=?, ContractName=?, ProjectID=?, EmployeeID=?, " +
+                     "CustomerID=?, Amount=?, SigningDate=?, ExpiryDate=?, Status=?, Terms=? " +
+                     "WHERE ContractID=?";
+        return jdbcTemplate.update(sql,
+            contract.getContractNo(),
+            contract.getContractName(),
+            contract.getProjectId(),
+            contract.getEmployeeId(),
+            contract.getClientId(),
+            contract.getAmount(),
+            contract.getSignDate() != null ? Date.valueOf(contract.getSignDate()) : null,
+            contract.getEndDate() != null ? Date.valueOf(contract.getEndDate()) : null,
+            contract.getStatus(),
+            contract.getDescription(),
+            contract.getId()
+        );
     }
 
     @Override
     public Contract selectById(Long id) {
-        // TODO: 实现根据ID查询逻辑
-        String sql = "SELECT * FROM contract WHERE id = ?";
-        return null;
+        String sql = "SELECT * FROM Contracts WHERE ContractID = ?";
+        List<Contract> results = jdbcTemplate.query(sql, contractRowMapper, id);
+        return results.isEmpty() ? null : results.get(0);
     }
 
     @Override
     public List<Contract> selectAll() {
-        // TODO: 实现查询所有逻辑
-        String sql = "SELECT * FROM contract";
-        return null;
+        String sql = "SELECT * FROM Contracts ORDER BY ContractID";
+        return jdbcTemplate.query(sql, contractRowMapper);
     }
 
     @Override
     public List<Contract> selectByPage(int offset, int pageSize) {
-        // TODO: 实现分页查询逻辑（SQL Server使用OFFSET FETCH）
-        String sql = "SELECT * FROM contract ORDER BY id OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
-        return null;
+        String sql = "SELECT * FROM Contracts ORDER BY ContractID OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        return jdbcTemplate.query(sql, contractRowMapper, offset, pageSize);
     }
 
     @Override
     public List<Contract> selectByClientId(Long clientId) {
-        // TODO: 实现根据客户ID查询逻辑
-        String sql = "SELECT * FROM contract WHERE client_id = ?";
-        return null;
+        String sql = "SELECT * FROM Contracts WHERE CustomerID = ?";
+        return jdbcTemplate.query(sql, contractRowMapper, clientId);
     }
 
     @Override
     public List<Contract> selectByStatus(String status) {
-        // TODO: 实现根据状态查询逻辑
-        String sql = "SELECT * FROM contract WHERE status = ?";
-        return null;
+        String sql = "SELECT * FROM Contracts WHERE Status = ?";
+        return jdbcTemplate.query(sql, contractRowMapper, status);
     }
 
     @Override
     public long count() {
-        // TODO: 实现查询总数逻辑
-        String sql = "SELECT COUNT(*) FROM contract";
-        return 0;
+        String sql = "SELECT COUNT(*) FROM Contracts";
+        Long count = jdbcTemplate.queryForObject(sql, Long.class);
+        return count != null ? count : 0;
     }
 
     @Override
     public List<Contract> searchByKeyword(String keyword) {
-        // TODO: 实现关键字搜索逻辑
-        String sql = "SELECT * FROM contract WHERE contract_no LIKE ? OR contract_name LIKE ?";
-        return null;
+        String sql = "SELECT * FROM Contracts WHERE ContractNumber LIKE ? OR ContractName LIKE ?";
+        String searchPattern = "%" + keyword + "%";
+        return jdbcTemplate.query(sql, contractRowMapper, searchPattern, searchPattern);
     }
 }
