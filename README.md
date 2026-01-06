@@ -1,219 +1,131 @@
 # 合同管理系统 - 快速开始
 
-## 🚀 运行项目
+## 安装依赖
 
-### IDEA
+克隆项目后执行：
 
-打开 `ContractManagerApplication.java` → 右键 → `Run`
+./mvnw clean install
 
-### 命令行
-
-```bash
-mvn spring-boot:run
-```
-
-### VS Code
-
-安装插件 `Extension Pack for Java` → 点击 `main` 方法上的 `Run`
+首次执行会自动下载依赖，等待几分钟，看到 BUILD SUCCESS 即可。
 
 ---
 
-## ⚙️ 数据库配置
+## 数据库配置关键步骤
 
-### 方式 1：IDEA Database 工具（推荐）
+### 1. 创建数据库
 
-1. 右侧 `Database` 面板 → `+` → `Data Source` → `SQL Server`
-2. 填写连接信息：
-   - Host: `localhost`
-   - Port: `1433`
-   - Database: `你的数据库名`
-   - User: `你的用户名`
-   - Password: `你的密码`
-3. 点击 `Test Connection` → 成功后 `Apply`
-4. 直接在 IDEA 中执行 SQL、查看表结构
+在 SQL Server 中执行：
 
-### 方式 2：配置文件
+CREATE DATABASE ContractManagementSystem;
+GO
 
-修改 `src/main/resources/application.properties`：
+### 2. 授权用户
 
-```properties
-spring.datasource.url=jdbc:sqlserver://localhost:1433;databaseName=你的数据库名
+方式 1：使用 sa 账户
+直接在 application.properties 中配置 sa 账户即可
+
+方式 2：授权现有用户
+
+USE ContractManagementSystem;
+CREATE USER ikun FOR LOGIN ikun;
+ALTER ROLE db_owner ADD MEMBER ikun;
+GO
+
+### 3. 创建表
+
+USE ContractManagementSystem;
+GO
+
+CREATE TABLE Client (
+id BIGINT IDENTITY(1,1) PRIMARY KEY,
+client_name NVARCHAR(100) NOT NULL,
+contact_person NVARCHAR(50),
+phone NVARCHAR(20),
+email NVARCHAR(100),
+address NVARCHAR(200),
+company_type NVARCHAR(50),
+credit_level NVARCHAR(10),
+create_time DATE,
+update_time DATE
+);
+
+CREATE TABLE Contract (
+id BIGINT IDENTITY(1,1) PRIMARY KEY,
+contract_no NVARCHAR(50) UNIQUE,
+contract_name NVARCHAR(100) NOT NULL,
+client_id BIGINT,
+amount DECIMAL(18,2),
+sign_date DATE,
+start_date DATE,
+end_date DATE,
+status NVARCHAR(20),
+description NVARCHAR(500),
+create_time DATE,
+update_time DATE
+);
+
+### 4. 配置连接
+
+修改 src/main/resources/application.properties：
+
+spring.datasource.url=jdbc:sqlserver://localhost:1433;databaseName=ContractManagementSystem;encrypt=true;trustServerCertificate=true
 spring.datasource.username=你的用户名
 spring.datasource.password=你的密码
-```
-
-**注意**：两种方式都支持，IDEA 工具仅用于可视化操作数据库，代码连接仍需配置 `application.properties`
 
 ---
 
-## ✅ 测试验证（确认连接成功）
+## 运行项目
 
-启动项目后，用以下方式测试：
+IDEA：打开 ContractManagerApplication.java 右键 Run
 
-### 1. 浏览器测试
+命令行：./mvnw spring-boot:run
 
-```
+---
+
+## 测试验证
+
+访问以下地址，返回 [] 或 JSON 数据即表示成功：
+
 http://localhost:8080/api/clients
 http://localhost:8080/api/contracts
-```
-
-**看到 JSON 返回（哪怕是空数组`[]`）= 连接成功**
-
-### 2. Postman 测试
-
-**查询所有客户**
-
-```
-GET http://localhost:8080/api/clients
-```
-
-**创建客户**
-
-```
-POST http://localhost:8080/api/clients
-Content-Type: application/json
-
-{
-  "clientName": "测试公司",
-  "contactPerson": "张三",
-  "phone": "13800138000"
-}
-```
-
-**查询所有合同**
-
-```
-GET http://localhost:8080/api/contracts
-```
-
-**创建合同**
-
-```
-POST http://localhost:8080/api/contracts
-Content-Type: application/json
-
-{
-  "contractNo": "CT2024001",
-  "contractName": "测试合同",
-  "clientId": 1,
-  "amount": 100000.00,
-  "status": "草稿"
-}
-```
-
-**更新客户**
-
-```
-PUT http://localhost:8080/api/clients/1
-Content-Type: application/json
-
-{
-  "clientName": "更新后的公司",
-  "phone": "13900139000"
-}
-```
-
-**删除客户**
-
-```
-DELETE http://localhost:8080/api/clients/1
-```
-
-### 3. 命令行测试
-
-```bash
-# 查询
-curl http://localhost:8080/api/clients
-
-# 创建
-curl -X POST http://localhost:8080/api/clients \
-  -H "Content-Type: application/json" \
-  -d "{\"clientName\":\"测试公司\",\"phone\":\"13800138000\"}"
-```
 
 ---
 
-## 👥 4 人分工
+## 4 人分工
 
-### 成员 1 - 输入修改
+成员 1- 输入修改
+负责 POST PUT DELETE 接口，合同和客户的增删改
+文件：controller/ContractController.java, controller/ClientController.java
 
-- **负责接口**：POST、PUT、DELETE（合同、客户的增删改）
-- **文件位置**：
-  - `controller/ContractController.java` 的 `@PostMapping`, `@PutMapping`, `@DeleteMapping`
-  - `controller/ClientController.java` 的 `@PostMapping`, `@PutMapping`, `@DeleteMapping`
-  - 对应的 Service 层实现（已完成）
+成员 2 - 查询
+负责 GET 接口，列表、单个、条件查询
+文件：controller/ContractController.java, controller/ClientController.java
 
-### 成员 2 - 查询
+成员 3 - 统计
+负责统计报表，金额、数量、月度统计
+新建 controller/StatisticsController.java, service/StatisticsService.java
 
-- **负责接口**：GET（列表、单个、条件查询）
-- **文件位置**：
-  - `controller/ContractController.java` 的 `@GetMapping`
-  - `controller/ClientController.java` 的 `@GetMapping`
-  - Repository 层自定义查询（已完成）
-
-### 成员 3 - 统计
-
-- **负责接口**：统计报表（金额、数量、月度）
-- **需要新建文件**：
-  - `controller/StatisticsController.java`
-  - `service/StatisticsService.java`
-  - 编写统计 SQL
-
-### 成员 4 - 导出日志
-
-- **负责接口**：导出 Excel、查询操作日志
-- **需要新建文件**：
-  - `controller/ExportController.java`
-  - `service/ExportService.java`
-  - `controller/LogController.java`
+成员 4 - 导出日志
+负责导出 Excel、查询操作日志
+新建 controller/ExportController.java, service/ExportService.java
 
 ---
 
-## 📝 已完成功能
+## 已完成功能
 
-✅ **Entity 层**（实体类）：`entity/Contract.java`, `entity/Client.java`  
-✅ **Repository 层**（数据访问）：`repository/ContractRepository.java`, `repository/ClientRepository.java`  
-✅ **Service 层**（业务逻辑）：`service/impl/ContractServiceImpl.java`, `service/impl/ClientServiceImpl.java`  
-✅ **Controller 层**（接口）：`controller/ContractController.java`, `controller/ClientController.java`
+Entity 层：entity/Contract.java, entity/Client.java
+Repository 层：repository/ContractRepository.java, repository/ClientRepository.java
+Service 层：service/impl/ContractServiceImpl.java, service/impl/ClientServiceImpl.java
+Controller 层：controller/ContractController.java, controller/ClientController.java
 
-**已实现的 CRUD 方法**：
-
-- ✅ 创建（POST）
-- ✅ 查询所有（GET）
-- ✅ 查询单个（GET /{id}）
-- ✅ 更新（PUT /{id}）
-- ✅ 删除（DELETE /{id}）
-- ✅ 分页查询
-- ✅ 条件查询
-
-**你们只需要**：
-
-1. 配置数据库连接
-2. 运行项目
-3. 用上面的测试方法验证
-4. 按分工添加新功能
+CRUD 方法：创建 POST, 查询 GET, 更新 PUT, 删除 DELETE, 分页查询, 条件查询
 
 ---
 
-## ❗ 常见问题
+## 常见问题
 
-**端口占用**  
-在 `application.properties` 添加：
+端口占用：在 application.properties 中加 server.port=8081
 
-```properties
-server.port=8081
-```
+连接失败：检查数据库服务、用户名密码、数据库名
 
-**连接失败**  
-检查：数据库服务是否启动、用户名密码、数据库名是否存在
-
-**Maven 下载慢**  
-编辑 `~/.m2/settings.xml`：
-
-```xml
-<mirror>
-  <id>aliyun</id>
-  <url>https://maven.aliyun.com/repository/public</url>
-  <mirrorOf>central</mirrorOf>
-</mirror>
-```
+Maven 下载慢：编辑 ~/.m2/settings.xml 添加阿里云镜像
