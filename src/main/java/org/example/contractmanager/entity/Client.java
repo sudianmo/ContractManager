@@ -1,7 +1,7 @@
 package org.example.contractmanager.entity;
 
 import lombok.Data;
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.LocalDate;
 
 /**
