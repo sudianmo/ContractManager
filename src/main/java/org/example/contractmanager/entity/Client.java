@@ -4,57 +4,131 @@ import lombok.Data;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 
-/**
- * 客户实体类
- * 对应数据库中的客户表（Client）
- */
-@Data  // Lombok 自动生成 getter/setter/toString/equals/hashCode
+@Data
 @Entity
 @Table(name = "Client")
 public class Client {
     
-    @Id  // 主键
-    @GeneratedValue(strategy = GenerationType.IDENTITY)  // 自增
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
     
-    @Column(name = "client_name", nullable = false, unique = true)  // 客户名称（非空、唯一）
+    @Column(name = "client_name", nullable = false, unique = true)
     private String clientName;
     
-    @Column(name = "contact_person")  // 联系人
+    @Column(name = "contact_person")
     private String contactPerson;
     
-    @Column(name = "phone", length = 20)  // 联系电话
+    @Column(name = "phone", length = 20)
     private String phone;
     
-    @Column(name = "email", unique = true)  // 邮箱（唯一）
+    @Column(name = "email", unique = true)
     private String email;
     
-    @Column(name = "address")  // 地址
+    @Column(name = "address")
     private String address;
     
-    @Column(name = "company_type", length = 50)  // 公司类型（如：国企、民企、外企等）
+    @Column(name = "company_type", length = 50)
     private String companyType;
     
-    @Column(name = "credit_level", length = 10)  // 信用等级（如：A、B、C等）
+    @Column(name = "credit_level", length = 10)
     private String creditLevel;
     
-    @Column(name = "create_time", updatable = false)  // 创建时间（不可更新）
+    @Column(name = "create_time", updatable = false)
     private LocalDate createTime;
     
-    @Column(name = "update_time")  // 更新时间
+    @Column(name = "update_time")
     private LocalDate updateTime;
     
-    // JPA 会自动在保存前设置创建时间
     @PrePersist
     protected void onCreate() {
         createTime = LocalDate.now();
         updateTime = LocalDate.now();
     }
     
-    // JPA 会自动在更新前设置更新时间
     @PreUpdate
     protected void onUpdate() {
         updateTime = LocalDate.now();
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getClientName() {
+        return clientName;
+    }
+
+    public void setClientName(String clientName) {
+        this.clientName = clientName;
+    }
+
+    public String getContactPerson() {
+        return contactPerson;
+    }
+
+    public void setContactPerson(String contactPerson) {
+        this.contactPerson = contactPerson;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getCompanyType() {
+        return companyType;
+    }
+
+    public void setCompanyType(String companyType) {
+        this.companyType = companyType;
+    }
+
+    public String getCreditLevel() {
+        return creditLevel;
+    }
+
+    public void setCreditLevel(String creditLevel) {
+        this.creditLevel = creditLevel;
+    }
+
+    public LocalDate getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(LocalDate createTime) {
+        this.createTime = createTime;
+    }
+
+    public LocalDate getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(LocalDate updateTime) {
+        this.updateTime = updateTime;
     }
 }
