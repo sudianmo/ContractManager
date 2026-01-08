@@ -20,8 +20,10 @@ public class ProductSalesStats {
     private Integer totalSalesQuantity;
     private BigDecimal totalSalesAmount;
     
-    // 供应商信息
+    // 供应商信息（已废弃：Suppliers表已删除，视图返回NULL）
+    @Deprecated
     private String supplierName;
+    @Deprecated
     private BigDecimal supplyPrice;
     
     // 毛利

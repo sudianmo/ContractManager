@@ -35,7 +35,9 @@ public class ContractFullInfo {
     private String contractManager;
     private String managerDepartment;
     
-    // 审批信息
+    // 审批信息（已废弃：Approvals表已删除，视图返回NULL）
+    @Deprecated
     private String approvalStatus;
+    @Deprecated
     private LocalDate approvalDate;
 }
