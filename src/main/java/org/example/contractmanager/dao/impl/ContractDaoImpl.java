@@ -117,46 +117,71 @@ public class ContractDaoImpl implements ContractDao {
 
     @Override
     public Contract selectById(Long id) {
-        String sql = "SELECT * FROM Contracts WHERE ContractID = ?";
+        String sql = "SELECT * FROM Contracts WHERE ContractID = ? AND IsDeleted = 0";
         List<Contract> results = jdbcTemplate.query(sql, contractRowMapper, id);
         return results.isEmpty() ? null : results.get(0);
     }
 
     @Override
     public List<Contract> selectAll() {
-        String sql = "SELECT * FROM Contracts ORDER BY ContractID";
+        String sql = "SELECT * FROM Contracts WHERE IsDeleted = 0 ORDER BY ContractID";
         return jdbcTemplate.query(sql, contractRowMapper);
     }
 
     @Override
     public List<Contract> selectByPage(int offset, int pageSize) {
-        String sql = "SELECT * FROM Contracts ORDER BY ContractID OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        String sql = "SELECT * FROM Contracts WHERE IsDeleted = 0 ORDER BY ContractID OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
         return jdbcTemplate.query(sql, contractRowMapper, offset, pageSize);
     }
 
     @Override
     public List<Contract> selectByClientId(Long clientId) {
-        String sql = "SELECT * FROM Contracts WHERE CustomerID = ?";
+        String sql = "SELECT * FROM Contracts WHERE CustomerID = ? AND IsDeleted = 0";
         return jdbcTemplate.query(sql, contractRowMapper, clientId);
     }
 
     @Override
     public List<Contract> selectByStatus(String status) {
-        String sql = "SELECT * FROM Contracts WHERE Status = ?";
+        String sql = "SELECT * FROM Contracts WHERE Status = ? AND IsDeleted = 0";
         return jdbcTemplate.query(sql, contractRowMapper, status);
     }
 
     @Override
     public long count() {
-        String sql = "SELECT COUNT(*) FROM Contracts";
+        String sql = "SELECT COUNT(*) FROM Contracts WHERE IsDeleted = 0";
         Long count = jdbcTemplate.queryForObject(sql, Long.class);
         return count != null ? count : 0;
     }
 
     @Override
     public List<Contract> searchByKeyword(String keyword) {
-        String sql = "SELECT * FROM Contracts WHERE ContractNumber LIKE ? OR ContractName LIKE ?";
+        String sql = "SELECT * FROM Contracts WHERE (ContractNumber LIKE ? OR ContractName LIKE ?) AND IsDeleted = 0";
         String searchPattern = "%" + keyword + "%";
         return jdbcTemplate.query(sql, contractRowMapper, searchPattern, searchPattern);
+    }
+    
+    @Override
+    public int countByProjectId(Long projectId) {
+        String sql = "SELECT COUNT(*) FROM Contracts WHERE ProjectID = ? AND IsDeleted = 0";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, projectId);
+        return count != null ? count : 0;
+    }
+    
+    @Override
+    public int softDelete(Long id, Long operatorId) {
+        String sql = "UPDATE Contracts SET IsDeleted = 1, DeletedBy = ?, DeletedAt = GETDATE() WHERE ContractID = ?";
+        return jdbcTemplate.update(sql, operatorId, id);
+    }
+    
+    @Override
+    public List<Contract> selectDeleted() {
+        String sql = "SELECT * FROM Contracts WHERE IsDeleted = 1 ORDER BY DeletedAt DESC";
+        return jdbcTemplate.query(sql, contractRowMapper);
+    }
+    
+    @Override
+    public int restore(Long id) {
+        String sql = "UPDATE Contracts SET IsDeleted = 0, DeletedBy = NULL, DeletedAt = NULL WHERE ContractID = ?";
+        return jdbcTemplate.update(sql, id);
     }
 }

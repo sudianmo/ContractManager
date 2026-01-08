@@ -15,7 +15,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/contracts")
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 public class ContractController {
 
     private final ContractService contractService;

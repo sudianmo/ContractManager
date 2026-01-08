@@ -3,7 +3,7 @@ package org.example.contractmanager.service;
 import org.example.contractmanager.dto.ClientDTO;
 import org.example.contractmanager.dto.PageQueryDTO;
 import org.example.contractmanager.dto.PageResultDTO;
-import org.example.contractmanager.entity.Client;
+import org.example.contractmanager.entity.Customer;
 
 import java.util.List;
 

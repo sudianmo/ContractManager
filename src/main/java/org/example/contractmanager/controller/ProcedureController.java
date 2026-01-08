@@ -17,7 +17,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/procedures")
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 public class ProcedureController {
 
     private final JdbcTemplate jdbcTemplate;

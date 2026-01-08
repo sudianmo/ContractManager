@@ -10,6 +10,7 @@ public class PageQueryDTO {
     private String keyword;  // 搜索关键字（可选）
     private String status;  // 合同状态（可选）
     private Long clientId;  // 客户ID（可选）
+    private Long contractId;  // 合同ID（可选）
     private String sortField;  // 排序字段（可选）
     private String sortOrder;  // 排序方式：ASC/DESC（可选）
 
@@ -71,5 +72,13 @@ public class PageQueryDTO {
 
     public void setClientId(Long clientId) {
         this.clientId = clientId;
+    }
+
+    public Long getContractId() {
+        return contractId;
+    }
+
+    public void setContractId(Long contractId) {
+        this.contractId = contractId;
     }
 }

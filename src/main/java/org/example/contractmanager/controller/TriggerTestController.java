@@ -14,7 +14,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/triggers")
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 public class TriggerTestController {
 
     private final JdbcTemplate jdbcTemplate;

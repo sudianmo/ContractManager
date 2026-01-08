@@ -1,6 +1,6 @@
 package org.example.contractmanager.dao;
 
-import org.example.contractmanager.entity.Client;
+import org.example.contractmanager.entity.Customer;
 import java.util.List;
 
 /**
@@ -14,7 +14,7 @@ public interface ClientDao {
      * @param client 客户对象
      * @return 影响的行数
      */
-    int insert(Client client);
+    int insert(Customer customer);
 
     /**
      * 根据ID删除客户
@@ -28,20 +28,20 @@ public interface ClientDao {
      * @param client 客户对象
      * @return 影响的行数
      */
-    int update(Client client);
+    int update(Customer customer);
 
     /**
      * 根据ID查询客户
      * @param id 客户ID
      * @return 客户对象
      */
-    Client selectById(Long id);
+    Customer selectById(Long id);
 
     /**
      * 查询所有客户
      * @return 客户列表
      */
-    List<Client> selectAll();
+    List<Customer> selectAll();
 
     /**
      * 分页查询客户
@@ -49,14 +49,14 @@ public interface ClientDao {
      * @param pageSize 每页大小
      * @return 客户列表
      */
-    List<Client> selectByPage(int offset, int pageSize);
+    List<Customer> selectByPage(int offset, int pageSize);
 
     /**
      * 根据客户名称查询
      * @param clientName 客户名称
      * @return 客户对象
      */
-    Client selectByName(String clientName);
+    Customer selectByName(String clientName);
 
     /**
      * 查询客户总数
@@ -69,5 +69,26 @@ public interface ClientDao {
      * @param keyword 关键字
      * @return 客户列表
      */
-    List<Client> searchByKeyword(String keyword);
+    List<Customer> searchByKeyword(String keyword);
+    
+    /**
+     * 软删除客户
+     * @param id 客户ID
+     * @param operatorId 操作员ID
+     * @return 影响的行数
+     */
+    int softDelete(Long id, Long operatorId);
+    
+    /**
+     * 查询已删除的客户（管理员）
+     * @return 已删除客户列表
+     */
+    List<Customer> selectDeleted();
+    
+    /**
+     * 恢复已删除的客户（管理员）
+     * @param id 客户ID
+     * @return 影响的行数
+     */
+    int restore(Long id);
 }

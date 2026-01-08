@@ -77,4 +77,15 @@ public interface ContractDao {
      * @return 合同列表
      */
     List<Contract> searchByKeyword(String keyword);
+    
+    /**
+     * 统计项目下的合同数量
+     * @param projectId 项目ID
+     * @return 合同数量
+     */
+    int countByProjectId(Long projectId);
+    
+    int softDelete(Long id, Long operatorId);
+    List<Contract> selectDeleted();
+    int restore(Long id);
 }

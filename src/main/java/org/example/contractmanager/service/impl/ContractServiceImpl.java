@@ -1,12 +1,15 @@
 package org.example.contractmanager.service.impl;
 
+import org.example.contractmanager.common.BusinessException;
 import org.example.contractmanager.dao.ContractDao;
 import org.example.contractmanager.dao.ClientDao;
+import org.example.contractmanager.dao.PaymentDao;
 import org.example.contractmanager.dto.ContractDTO;
 import org.example.contractmanager.dto.PageQueryDTO;
 import org.example.contractmanager.dto.PageResultDTO;
 import org.example.contractmanager.entity.Contract;
-import org.example.contractmanager.entity.Client;
+import org.example.contractmanager.entity.Customer;
+import org.example.contractmanager.entity.Payment;
 import org.example.contractmanager.service.ContractService;
 import org.springframework.stereotype.Service;
 
@@ -18,10 +21,12 @@ public class ContractServiceImpl implements ContractService {
 
     private final ContractDao contractDao;
     private final ClientDao clientDao;
+    private final PaymentDao paymentDao;
 
-    public ContractServiceImpl(ContractDao contractDao, ClientDao clientDao) {
+    public ContractServiceImpl(ContractDao contractDao, ClientDao clientDao, PaymentDao paymentDao) {
         this.contractDao = contractDao;
         this.clientDao = clientDao;
+        this.paymentDao = paymentDao;
     }
 
     @Override
@@ -33,13 +38,33 @@ public class ContractServiceImpl implements ContractService {
 
     @Override
     public boolean deleteContract(Long id) {
-        int result = contractDao.deleteById(id);
+        // 检查是否有未删除的支付记录
+        int paymentCount = paymentDao.countByContractId(id);
+        if (paymentCount > 0) {
+            // 级联软删除：先删除关联支付记录
+            List<Payment> payments = paymentDao.selectByContractId(id);
+            for (Payment payment : payments) {
+                paymentDao.softDelete(payment.getId(), 1L);
+            }
+        }
+        
+        int result = contractDao.softDelete(id, 1L);
         return result > 0;
     }
 
     @Override
     public boolean updateContract(ContractDTO contractDTO) {
+        // 编辑时，需要保留原有的projectId和employeeId
+        Contract existingContract = contractDao.selectById(contractDTO.getId());
+        if (existingContract == null) {
+            throw new BusinessException("合同不存在");
+        }
+        
         Contract contract = convertToEntity(contractDTO);
+        // 保留原有的projectId和employeeId
+        contract.setProjectId(existingContract.getProjectId());
+        contract.setEmployeeId(existingContract.getEmployeeId());
+        
         int result = contractDao.update(contract);
         return result > 0;
     }
@@ -122,9 +147,9 @@ public class ContractServiceImpl implements ContractService {
         
         // 查询客户名称
         if (contract.getClientId() != null) {
-            Client client = clientDao.selectById(contract.getClientId());
-            if (client != null) {
-                dto.setClientName(client.getClientName());
+            Customer customer = clientDao.selectById(contract.getClientId());
+            if (customer != null) {
+                dto.setClientName(customer.getCustomerName());
             }
         }
         

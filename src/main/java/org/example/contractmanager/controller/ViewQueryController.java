@@ -13,7 +13,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/views")
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 public class ViewQueryController {
 
     private final JdbcTemplate jdbcTemplate;
