@@ -25,7 +25,8 @@ public class PaymentDaoImpl implements PaymentDao {
 
     @Override
     public List<Payment> selectByPage(PageQueryDTO pageQuery) {
-        StringBuilder sql = new StringBuilder("SELECT PaymentID as id, ContractID as contractId, PaymentAmount as paymentAmount, PaymentDate as paymentDate, PaymentMethod as paymentMethod, PaymentStatus as paymentStatus, Remarks as remarks FROM Payments WHERE IsDeleted = 0");
+        StringBuilder sql = new StringBuilder(
+                "SELECT PaymentID as id, ContractID as contractId, PaymentAmount as paymentAmount, PaymentDate as paymentDate, PaymentMethod as paymentMethod, PaymentStatus as paymentStatus, Remarks as remarks FROM Payments WHERE IsDeleted = 0");
         List<Object> params = new ArrayList<>();
 
         if (pageQuery.getContractId() != null) {
@@ -108,7 +109,7 @@ public class PaymentDaoImpl implements PaymentDao {
         String sql = "SELECT PaymentID as id, ContractID as contractId, PaymentAmount as paymentAmount, PaymentDate as paymentDate, PaymentMethod as paymentMethod, PaymentStatus as paymentStatus, Remarks as remarks FROM Payments WHERE ContractID = ? AND IsDeleted = 0 ORDER BY PaymentDate DESC";
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Payment.class), contractId);
     }
-    
+
     @Override
     public int countByContractId(Long contractId) {
         String sql = "SELECT COUNT(*) FROM Payments WHERE ContractID = ? AND IsDeleted = 0";
@@ -121,19 +122,19 @@ public class PaymentDaoImpl implements PaymentDao {
         String sql = "SELECT ISNULL(SUM(PaymentAmount), 0) FROM Payments WHERE PaymentStatus = 'Completed' AND IsDeleted = 0";
         return jdbcTemplate.queryForObject(sql, BigDecimal.class);
     }
-    
+
     @Override
     public int softDelete(Long id, Long operatorId) {
         String sql = "UPDATE Payments SET IsDeleted = 1, DeletedBy = ?, DeletedAt = GETDATE() WHERE PaymentID = ?";
         return jdbcTemplate.update(sql, operatorId, id);
     }
-    
+
     @Override
     public List<Payment> selectDeleted() {
         String sql = "SELECT PaymentID as id, ContractID as contractId, PaymentAmount as paymentAmount, PaymentDate as paymentDate, PaymentMethod as paymentMethod, PaymentStatus as paymentStatus, Remarks as remarks FROM Payments WHERE IsDeleted = 1 ORDER BY DeletedAt DESC";
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Payment.class));
     }
-    
+
     @Override
     public int restore(Long id) {
         String sql = "UPDATE Payments SET IsDeleted = 0, DeletedBy = NULL, DeletedAt = NULL WHERE PaymentID = ?";

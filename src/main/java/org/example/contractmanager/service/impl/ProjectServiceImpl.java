@@ -25,7 +25,7 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Autowired
     private ClientDao clientDao;
-    
+
     @Autowired
     private ContractDao contractDao;
 
@@ -33,11 +33,11 @@ public class ProjectServiceImpl implements ProjectService {
     public PageResultDTO<ProjectDTO> getProjectsByPage(PageQueryDTO pageQuery) {
         List<Project> projects = projectDao.selectByPage(pageQuery);
         int total = projectDao.countTotal(pageQuery);
-        
+
         List<ProjectDTO> records = projects.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
-        
+
         return new PageResultDTO<>((long) total, records);
     }
 
@@ -50,7 +50,11 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     public boolean createProject(ProjectDTO projectDTO) {
         Project project = convertToEntity(projectDTO);
-        return projectDao.insert(project) > 0;
+        int result = projectDao.insert(project);
+        if (result > 0) {
+            projectDTO.setId(project.getId());
+        }
+        return result > 0;
     }
 
     @Override
@@ -75,14 +79,14 @@ public class ProjectServiceImpl implements ProjectService {
     private ProjectDTO convertToDTO(Project project) {
         ProjectDTO dto = new ProjectDTO();
         BeanUtils.copyProperties(project, dto);
-        
+
         if (project.getCustomerId() != null) {
             Customer customer = clientDao.selectById(project.getCustomerId());
             if (customer != null) {
                 dto.setCustomerName(customer.getCustomerName());
             }
         }
-        
+
         return dto;
     }
 

@@ -29,11 +29,11 @@ public class PaymentServiceImpl implements PaymentService {
     public PageResultDTO<PaymentDTO> getPaymentsByPage(PageQueryDTO pageQuery) {
         List<Payment> payments = paymentDao.selectByPage(pageQuery);
         int total = paymentDao.countTotal(pageQuery);
-        
+
         List<PaymentDTO> records = payments.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
-        
+
         return new PageResultDTO<>((long) total, records);
     }
 
@@ -46,7 +46,11 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public boolean createPayment(PaymentDTO paymentDTO) {
         Payment payment = convertToEntity(paymentDTO);
-        return paymentDao.insert(payment) > 0;
+        int result = paymentDao.insert(payment);
+        if (result > 0) {
+            paymentDTO.setId(payment.getId());
+        }
+        return result > 0;
     }
 
     @Override
@@ -75,14 +79,14 @@ public class PaymentServiceImpl implements PaymentService {
     private PaymentDTO convertToDTO(Payment payment) {
         PaymentDTO dto = new PaymentDTO();
         BeanUtils.copyProperties(payment, dto);
-        
+
         if (payment.getContractId() != null) {
             Contract contract = contractDao.selectById(payment.getContractId());
             if (contract != null) {
                 dto.setContractName(contract.getContractName());
             }
         }
-        
+
         return dto;
     }
 

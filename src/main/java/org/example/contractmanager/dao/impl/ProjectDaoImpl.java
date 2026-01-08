@@ -1,18 +1,20 @@
 package org.example.contractmanager.dao.impl;
 
+import org.example.contractmanager.common.BusinessException;
 import org.example.contractmanager.dao.ProjectDao;
 import org.example.contractmanager.dto.PageQueryDTO;
 import org.example.contractmanager.entity.Project;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.jdbc.core.SqlOutParameter;
+import org.springframework.jdbc.core.SqlParameter;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.stereotype.Repository;
 
 import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,7 +26,8 @@ public class ProjectDaoImpl implements ProjectDao {
 
     @Override
     public List<Project> selectByPage(PageQueryDTO pageQuery) {
-        StringBuilder sql = new StringBuilder("SELECT ProjectID as id, ProjectName as projectName, CustomerID as customerId, StartDate as startDate, EndDate as endDate, Budget as budget, Status as status, Description as description FROM Projects WHERE IsDeleted = 0");
+        StringBuilder sql = new StringBuilder(
+                "SELECT ProjectID as id, ProjectName as projectName, CustomerID as customerId, StartDate as startDate, EndDate as endDate, Budget as budget, Status as status, Description as description FROM Projects WHERE IsDeleted = 0");
         List<Object> params = new ArrayList<>();
 
         if (pageQuery.getKeyword() != null && !pageQuery.getKeyword().isEmpty()) {
@@ -72,52 +75,112 @@ public class ProjectDaoImpl implements ProjectDao {
 
     @Override
     public int insert(Project project) {
-        String sql = "INSERT INTO Projects (ProjectName, CustomerID, StartDate, EndDate, Budget, Status, Description) VALUES (?, ?, ?, ?, ?, ?, ?)";
-        KeyHolder keyHolder = new GeneratedKeyHolder();
+        SimpleJdbcCall jdbcCall = new SimpleJdbcCall(jdbcTemplate)
+                .withSchemaName("dbo")
+                .withProcedureName("SP_AddProject")
+                .withoutProcedureColumnMetaDataAccess()
+                .declareParameters(
+                        new SqlParameter("ProjectName", Types.NVARCHAR),
+                        new SqlParameter("CustomerID", Types.BIGINT),
+                        new SqlParameter("StartDate", Types.DATE),
+                        new SqlParameter("EndDate", Types.DATE),
+                        new SqlParameter("Budget", Types.DECIMAL),
+                        new SqlParameter("Status", Types.VARCHAR),
+                        new SqlParameter("Description", Types.NVARCHAR),
+                        new SqlOutParameter("NewProjectID", Types.BIGINT),
+                        new SqlOutParameter("ResultCode", Types.INTEGER),
+                        new SqlOutParameter("ResultMsg", Types.NVARCHAR));
 
-        jdbcTemplate.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-            ps.setString(1, project.getProjectName());
-            ps.setLong(2, project.getCustomerId());
-            ps.setDate(3, project.getStartDate() != null ? Date.valueOf(project.getStartDate()) : null);
-            ps.setDate(4, project.getEndDate() != null ? Date.valueOf(project.getEndDate()) : null);
-            ps.setBigDecimal(5, project.getBudget());
-            ps.setString(6, project.getStatus());
-            ps.setString(7, project.getDescription());
-            return ps;
-        }, keyHolder);
+        MapSqlParameterSource inParams = new MapSqlParameterSource()
+                .addValue("ProjectName", project.getProjectName())
+                .addValue("CustomerID", project.getCustomerId())
+                .addValue("StartDate", project.getStartDate() != null ? Date.valueOf(project.getStartDate()) : null)
+                .addValue("EndDate", project.getEndDate() != null ? Date.valueOf(project.getEndDate()) : null)
+                .addValue("Budget", project.getBudget())
+                .addValue("Status", project.getStatus())
+                .addValue("Description", project.getDescription());
 
-        Number key = keyHolder.getKey();
-        if (key != null) {
-            project.setId(key.longValue());
+        var out = jdbcCall.execute(inParams);
+        Integer resultCode = (Integer) out.get("ResultCode");
+        String resultMsg = (String) out.get("ResultMsg");
+
+        if (resultCode == null || resultCode != 1) {
+            throw new BusinessException(resultMsg != null ? resultMsg : "创建项目失败");
         }
+
+        Object newIdObj = out.get("NewProjectID");
+        if (newIdObj instanceof Number) {
+            project.setId(((Number) newIdObj).longValue());
+        }
+
         return 1;
     }
 
     @Override
     public int update(Project project) {
-        String sql = "UPDATE Projects SET ProjectName = ?, CustomerID = ?, StartDate = ?, EndDate = ?, Budget = ?, Status = ?, Description = ? WHERE ProjectID = ?";
-        return jdbcTemplate.update(sql,
-                project.getProjectName(),
-                project.getCustomerId(),
-                project.getStartDate(),
-                project.getEndDate(),
-                project.getBudget(),
-                project.getStatus(),
-                project.getDescription(),
-                project.getId());
+        SimpleJdbcCall jdbcCall = new SimpleJdbcCall(jdbcTemplate)
+                .withSchemaName("dbo")
+                .withProcedureName("SP_UpdateProject")
+                .withoutProcedureColumnMetaDataAccess()
+                .declareParameters(
+                        new SqlParameter("ProjectID", Types.BIGINT),
+                        new SqlParameter("ProjectName", Types.NVARCHAR),
+                        new SqlParameter("CustomerID", Types.BIGINT),
+                        new SqlParameter("StartDate", Types.DATE),
+                        new SqlParameter("EndDate", Types.DATE),
+                        new SqlParameter("Budget", Types.DECIMAL),
+                        new SqlParameter("Status", Types.VARCHAR),
+                        new SqlParameter("Description", Types.NVARCHAR),
+                        new SqlOutParameter("ResultCode", Types.INTEGER),
+                        new SqlOutParameter("ResultMsg", Types.NVARCHAR));
+
+        MapSqlParameterSource inParams = new MapSqlParameterSource()
+                .addValue("ProjectID", project.getId())
+                .addValue("ProjectName", project.getProjectName())
+                .addValue("CustomerID", project.getCustomerId())
+                .addValue("StartDate", project.getStartDate() != null ? Date.valueOf(project.getStartDate()) : null)
+                .addValue("EndDate", project.getEndDate() != null ? Date.valueOf(project.getEndDate()) : null)
+                .addValue("Budget", project.getBudget())
+                .addValue("Status", project.getStatus())
+                .addValue("Description", project.getDescription());
+
+        var out = jdbcCall.execute(inParams);
+        Integer resultCode = (Integer) out.get("ResultCode");
+        String resultMsg = (String) out.get("ResultMsg");
+        if (resultCode == null || resultCode != 1) {
+            throw new BusinessException(resultMsg != null ? resultMsg : "更新项目失败");
+        }
+        return 1;
     }
 
     @Override
     public int deleteById(Long id) {
-        String sql = "DELETE FROM Projects WHERE ProjectID = ?";
-        return jdbcTemplate.update(sql, id);
+        return softDelete(id, 1L);
     }
-    
+
     @Override
     public int softDelete(Long id, Long operatorId) {
-        String sql = "UPDATE Projects SET IsDeleted = 1, DeletedBy = ?, DeletedAt = GETDATE() WHERE ProjectID = ?";
-        return jdbcTemplate.update(sql, operatorId, id);
+        SimpleJdbcCall jdbcCall = new SimpleJdbcCall(jdbcTemplate)
+                .withSchemaName("dbo")
+                .withProcedureName("SP_SoftDeleteProject")
+                .withoutProcedureColumnMetaDataAccess()
+                .declareParameters(
+                        new SqlParameter("ProjectID", Types.BIGINT),
+                        new SqlParameter("OperatorID", Types.BIGINT),
+                        new SqlOutParameter("ResultCode", Types.INTEGER),
+                        new SqlOutParameter("ResultMsg", Types.NVARCHAR));
+
+        MapSqlParameterSource inParams = new MapSqlParameterSource()
+                .addValue("ProjectID", id)
+                .addValue("OperatorID", operatorId);
+
+        var out = jdbcCall.execute(inParams);
+        Integer resultCode = (Integer) out.get("ResultCode");
+        String resultMsg = (String) out.get("ResultMsg");
+        if (resultCode == null || resultCode != 1) {
+            throw new BusinessException(resultMsg != null ? resultMsg : "删除项目失败");
+        }
+        return 1;
     }
 
     @Override
@@ -125,23 +188,40 @@ public class ProjectDaoImpl implements ProjectDao {
         String sql = "SELECT TOP 5 ProjectID as id, ProjectName as projectName, CustomerID as customerId, StartDate as startDate, EndDate as endDate, Budget as budget, Status as status, Description as description FROM Projects WHERE EndDate < GETDATE() AND Status != 'Completed' AND IsDeleted = 0 ORDER BY EndDate ASC";
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Project.class));
     }
-    
+
     @Override
     public int countByCustomerId(Long customerId) {
         String sql = "SELECT COUNT(*) FROM Projects WHERE CustomerID = ? AND IsDeleted = 0";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, customerId);
         return count != null ? count : 0;
     }
-    
+
     @Override
     public List<Project> selectDeleted() {
         String sql = "SELECT ProjectID as id, ProjectName as projectName, CustomerID as customerId, StartDate as startDate, EndDate as endDate, Budget as budget, Status as status, Description as description FROM Projects WHERE IsDeleted = 1 ORDER BY DeletedAt DESC";
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Project.class));
     }
-    
+
     @Override
     public int restore(Long id) {
-        String sql = "UPDATE Projects SET IsDeleted = 0, DeletedBy = NULL, DeletedAt = NULL WHERE ProjectID = ?";
-        return jdbcTemplate.update(sql, id);
+        SimpleJdbcCall jdbcCall = new SimpleJdbcCall(jdbcTemplate)
+                .withSchemaName("dbo")
+                .withProcedureName("SP_RestoreProject")
+                .withoutProcedureColumnMetaDataAccess()
+                .declareParameters(
+                        new SqlParameter("ProjectID", Types.BIGINT),
+                        new SqlOutParameter("ResultCode", Types.INTEGER),
+                        new SqlOutParameter("ResultMsg", Types.NVARCHAR));
+
+        MapSqlParameterSource inParams = new MapSqlParameterSource()
+                .addValue("ProjectID", id);
+
+        var out = jdbcCall.execute(inParams);
+        Integer resultCode = (Integer) out.get("ResultCode");
+        String resultMsg = (String) out.get("ResultMsg");
+        if (resultCode == null || resultCode != 1) {
+            throw new BusinessException(resultMsg != null ? resultMsg : "恢复项目失败");
+        }
+        return 1;
     }
 }

@@ -28,6 +28,9 @@ public class ClientServiceImpl implements ClientService {
     public boolean addClient(ClientDTO clientDTO) {
         Customer customer = convertToEntity(clientDTO);
         int result = clientDao.insert(customer);
+        if (result > 0) {
+            clientDTO.setId(customer.getCustomerId());
+        }
         return result > 0;
     }
 
@@ -63,11 +66,11 @@ public class ClientServiceImpl implements ClientService {
         int offset = (pageQuery.getPageNum() - 1) * pageQuery.getPageSize();
         List<Customer> customers = clientDao.selectByPage(offset, pageQuery.getPageSize());
         long total = clientDao.count();
-        
+
         List<ClientDTO> records = customers.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
-        
+
         return new PageResultDTO<>(total, records);
     }
 

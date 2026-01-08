@@ -33,6 +33,9 @@ public class ContractServiceImpl implements ContractService {
     public boolean addContract(ContractDTO contractDTO) {
         Contract contract = convertToEntity(contractDTO);
         int result = contractDao.insert(contract);
+        if (result > 0) {
+            contractDTO.setId(contract.getId());
+        }
         return result > 0;
     }
 
@@ -47,7 +50,7 @@ public class ContractServiceImpl implements ContractService {
                 paymentDao.softDelete(payment.getId(), 1L);
             }
         }
-        
+
         int result = contractDao.softDelete(id, 1L);
         return result > 0;
     }
@@ -59,12 +62,12 @@ public class ContractServiceImpl implements ContractService {
         if (existingContract == null) {
             throw new BusinessException("合同不存在");
         }
-        
+
         Contract contract = convertToEntity(contractDTO);
         // 保留原有的projectId和employeeId
         contract.setProjectId(existingContract.getProjectId());
         contract.setEmployeeId(existingContract.getEmployeeId());
-        
+
         int result = contractDao.update(contract);
         return result > 0;
     }
@@ -87,7 +90,7 @@ public class ContractServiceImpl implements ContractService {
         int offset = (pageQuery.getPageNum() - 1) * pageQuery.getPageSize();
         List<Contract> contracts;
         long total;
-        
+
         // 根据筛选条件调用不同的DAO方法
         if (pageQuery.getClientId() != null) {
             contracts = contractDao.selectByClientId(pageQuery.getClientId());
@@ -102,18 +105,18 @@ public class ContractServiceImpl implements ContractService {
             contracts = contractDao.selectByPage(offset, pageQuery.getPageSize());
             total = contractDao.count();
         }
-        
+
         // 分页截取（对于筛选结果）
         if (pageQuery.getClientId() != null || pageQuery.getStatus() != null || pageQuery.getKeyword() != null) {
             int start = Math.min(offset, contracts.size());
             int end = Math.min(offset + pageQuery.getPageSize(), contracts.size());
             contracts = contracts.subList(start, end);
         }
-            
+
         List<ContractDTO> records = contracts.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
-            
+
         return new PageResultDTO<>(total, records);
     }
 
@@ -144,7 +147,7 @@ public class ContractServiceImpl implements ContractService {
         dto.setContractNo(contract.getContractNo());
         dto.setContractName(contract.getContractName());
         dto.setClientId(contract.getClientId());
-        
+
         // 查询客户名称
         if (contract.getClientId() != null) {
             Customer customer = clientDao.selectById(contract.getClientId());
@@ -152,7 +155,7 @@ public class ContractServiceImpl implements ContractService {
                 dto.setClientName(customer.getCustomerName());
             }
         }
-        
+
         dto.setAmount(contract.getAmount());
         dto.setSignDate(contract.getSignDate());
         dto.setEndDate(contract.getEndDate());
