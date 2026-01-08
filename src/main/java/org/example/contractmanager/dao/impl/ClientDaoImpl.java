@@ -1,18 +1,18 @@
 package org.example.contractmanager.dao.impl;
 
 import org.example.contractmanager.dao.ClientDao;
+import org.example.contractmanager.common.BusinessException;
 import org.example.contractmanager.entity.Customer;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.jdbc.core.SqlOutParameter;
+import org.springframework.jdbc.core.SqlParameter;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.stereotype.Repository;
 
 import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.Types;
 import java.util.List;
 
 /**
@@ -39,36 +39,63 @@ public class ClientDaoImpl implements ClientDao {
         customer.setPhone(rs.getString("Phone"));
         customer.setEmail(rs.getString("Email"));
         customer.setAddress(rs.getString("Address"));
-        
+
         Date regDate = rs.getDate("RegistrationDate");
         if (regDate != null) {
             customer.setRegistrationDate(regDate.toLocalDate());
         }
-        
+
         customer.setStatus(rs.getString("Status"));
         return customer;
     };
 
     @Override
     public int insert(Customer customer) {
-        String sql = "INSERT INTO Customers (CustomerName, ContactPerson, Phone, Email, Address, RegistrationDate, Status) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?)";
-        
-        KeyHolder keyHolder = new GeneratedKeyHolder();
-        
-        jdbcTemplate.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-            ps.setString(1, customer.getCustomerName());
-            ps.setString(2, customer.getContactPerson());
-            ps.setString(3, customer.getPhone());
-            ps.setString(4, customer.getEmail());
-            ps.setString(5, customer.getAddress());
-            ps.setDate(6, customer.getRegistrationDate() != null ? Date.valueOf(customer.getRegistrationDate()) : Date.valueOf(java.time.LocalDate.now()));
-            ps.setString(7, customer.getStatus() != null ? customer.getStatus() : "Active");
-            return ps;
-        }, keyHolder);
-        
-        return keyHolder.getKey() != null ? keyHolder.getKey().intValue() : 0;
+        String email = customer.getEmail();
+        if (email != null && email.trim().isEmpty()) {
+            email = null;
+        }
+
+        SimpleJdbcCall jdbcCall = new SimpleJdbcCall(jdbcTemplate)
+                .withSchemaName("dbo")
+                .withProcedureName("SP_AddCustomer")
+                .withoutProcedureColumnMetaDataAccess()
+                .declareParameters(
+                        new SqlParameter("CustomerName", Types.NVARCHAR),
+                        new SqlParameter("ContactPerson", Types.NVARCHAR),
+                        new SqlParameter("Phone", Types.NVARCHAR),
+                        new SqlParameter("Email", Types.NVARCHAR),
+                        new SqlParameter("Address", Types.NVARCHAR),
+                        new SqlParameter("RegistrationDate", Types.DATE),
+                        new SqlParameter("Status", Types.VARCHAR),
+                        new SqlOutParameter("NewCustomerID", Types.BIGINT),
+                        new SqlOutParameter("ResultCode", Types.INTEGER),
+                        new SqlOutParameter("ResultMsg", Types.NVARCHAR));
+
+        MapSqlParameterSource inParams = new MapSqlParameterSource()
+                .addValue("CustomerName", customer.getCustomerName())
+                .addValue("ContactPerson", customer.getContactPerson())
+                .addValue("Phone", customer.getPhone())
+                .addValue("Email", email)
+                .addValue("Address", customer.getAddress())
+                .addValue("RegistrationDate",
+                        customer.getRegistrationDate() != null ? Date.valueOf(customer.getRegistrationDate()) : null)
+                .addValue("Status", customer.getStatus());
+
+        var out = jdbcCall.execute(inParams);
+        Integer resultCode = (Integer) out.get("ResultCode");
+        String resultMsg = (String) out.get("ResultMsg");
+
+        if (resultCode == null || resultCode != 1) {
+            throw new BusinessException(resultMsg != null ? resultMsg : "新增客户失败");
+        }
+
+        Object newIdObj = out.get("NewCustomerID");
+        if (newIdObj instanceof Number) {
+            customer.setCustomerId(((Number) newIdObj).longValue());
+        }
+
+        return 1;
     }
 
     @Override
@@ -77,7 +104,7 @@ public class ClientDaoImpl implements ClientDao {
         String sql = "DELETE FROM Customers WHERE CustomerID = ?";
         return jdbcTemplate.update(sql, id);
     }
-    
+
     @Override
     public int softDelete(Long id, Long operatorId) {
         String sql = "UPDATE Customers SET IsDeleted = 1, DeletedBy = ?, DeletedAt = GETDATE() WHERE CustomerID = ?";
@@ -87,16 +114,15 @@ public class ClientDaoImpl implements ClientDao {
     @Override
     public int update(Customer customer) {
         String sql = "UPDATE Customers SET CustomerName=?, ContactPerson=?, Phone=?, Email=?, Address=?, Status=? " +
-                     "WHERE CustomerID=?";
-        return jdbcTemplate.update(sql, 
-            customer.getCustomerName(),
-            customer.getContactPerson(),
-            customer.getPhone(),
-            customer.getEmail(),
-            customer.getAddress(),
-            customer.getStatus(),
-            customer.getCustomerId()
-        );
+                "WHERE CustomerID=?";
+        return jdbcTemplate.update(sql,
+                customer.getCustomerName(),
+                customer.getContactPerson(),
+                customer.getPhone(),
+                customer.getEmail(),
+                customer.getAddress(),
+                customer.getStatus(),
+                customer.getCustomerId());
     }
 
     @Override
@@ -138,13 +164,13 @@ public class ClientDaoImpl implements ClientDao {
         String searchPattern = "%" + keyword + "%";
         return jdbcTemplate.query(sql, clientRowMapper, searchPattern, searchPattern);
     }
-    
+
     @Override
     public List<Customer> selectDeleted() {
         String sql = "SELECT * FROM Customers WHERE IsDeleted = 1 ORDER BY DeletedAt DESC";
         return jdbcTemplate.query(sql, clientRowMapper);
     }
-    
+
     @Override
     public int restore(Long id) {
         String sql = "UPDATE Customers SET IsDeleted = 0, DeletedBy = NULL, DeletedAt = NULL WHERE CustomerID = ?";

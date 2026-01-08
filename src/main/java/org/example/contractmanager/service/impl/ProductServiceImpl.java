@@ -24,11 +24,11 @@ public class ProductServiceImpl implements ProductService {
     public PageResultDTO<ProductDTO> getProductsByPage(PageQueryDTO pageQuery) {
         List<Product> products = productDao.selectByPage(pageQuery);
         int total = productDao.countTotal(pageQuery);
-        
+
         List<ProductDTO> records = products.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
-        
+
         return new PageResultDTO<>((long) total, records);
     }
 
@@ -41,7 +41,11 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public boolean createProduct(ProductDTO productDTO) {
         Product product = convertToEntity(productDTO);
-        return productDao.insert(product) > 0;
+        int result = productDao.insert(product);
+        if (result > 0) {
+            productDTO.setId(product.getId());
+        }
+        return result > 0;
     }
 
     @Override
@@ -57,7 +61,7 @@ public class ProductServiceImpl implements ProductService {
         if (usageCount > 0) {
             throw new BusinessException("该产品被 " + usageCount + " 个合同使用，无法删除");
         }
-        
+
         return productDao.softDelete(id, 1L) > 0;
     }
 

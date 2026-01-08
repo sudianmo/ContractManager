@@ -1,16 +1,18 @@
 package org.example.contractmanager.dao.impl;
 
 import org.example.contractmanager.dao.ContractDao;
+import org.example.contractmanager.common.BusinessException;
 import org.example.contractmanager.entity.Contract;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.jdbc.core.SqlOutParameter;
+import org.springframework.jdbc.core.SqlParameter;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.stereotype.Repository;
 
 import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.Statement;
+import java.sql.Types;
 import java.util.List;
 
 /**
@@ -58,61 +60,98 @@ public class ContractDaoImpl implements ContractDao {
 
     @Override
     public int insert(Contract contract) {
-        String sql = "INSERT INTO Contracts (ContractNumber, ContractName, ProjectID, EmployeeID, CustomerID, " +
-                     "Amount, SigningDate, ExpiryDate, Status, Terms, TotalPayment) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        
-        KeyHolder keyHolder = new GeneratedKeyHolder();
-        
-        jdbcTemplate.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-            ps.setString(1, contract.getContractNo());
-            ps.setString(2, contract.getContractName());
-            ps.setLong(3, contract.getProjectId());
-            ps.setLong(4, contract.getEmployeeId());
-            
-            if (contract.getClientId() != null) {
-                ps.setLong(5, contract.getClientId());
-            } else {
-                ps.setNull(5, java.sql.Types.BIGINT);
-            }
-            
-            ps.setBigDecimal(6, contract.getAmount());
-            ps.setDate(7, contract.getSignDate() != null ? Date.valueOf(contract.getSignDate()) : null);
-            ps.setDate(8, contract.getEndDate() != null ? Date.valueOf(contract.getEndDate()) : null);
-            ps.setString(9, contract.getStatus() != null ? contract.getStatus() : "Signed");
-            ps.setString(10, contract.getDescription());
-            ps.setBigDecimal(11, contract.getTotalPayment() != null ? contract.getTotalPayment() : new java.math.BigDecimal("0.00"));
-            return ps;
-        }, keyHolder);
-        
-        return keyHolder.getKey() != null ? keyHolder.getKey().intValue() : 0;
+        SimpleJdbcCall jdbcCall = new SimpleJdbcCall(jdbcTemplate)
+                .withSchemaName("dbo")
+                .withProcedureName("SP_AddContract")
+                .withoutProcedureColumnMetaDataAccess()
+                .declareParameters(
+                        new SqlParameter("ContractNumber", Types.NVARCHAR),
+                        new SqlParameter("ContractName", Types.NVARCHAR),
+                        new SqlParameter("ProjectID", Types.BIGINT),
+                        new SqlParameter("EmployeeID", Types.BIGINT),
+                        new SqlParameter("CustomerID", Types.BIGINT),
+                        new SqlParameter("Amount", Types.DECIMAL),
+                        new SqlParameter("SigningDate", Types.DATE),
+                        new SqlParameter("ExpiryDate", Types.DATE),
+                        new SqlParameter("Status", Types.VARCHAR),
+                        new SqlParameter("Terms", Types.NVARCHAR),
+                        new SqlOutParameter("NewContractID", Types.BIGINT),
+                        new SqlOutParameter("ResultCode", Types.INTEGER),
+                        new SqlOutParameter("ResultMsg", Types.NVARCHAR));
+
+        MapSqlParameterSource inParams = new MapSqlParameterSource()
+                .addValue("ContractNumber", contract.getContractNo())
+                .addValue("ContractName", contract.getContractName())
+                .addValue("ProjectID", contract.getProjectId())
+                .addValue("EmployeeID", contract.getEmployeeId())
+                .addValue("CustomerID", contract.getClientId())
+                .addValue("Amount", contract.getAmount())
+                .addValue("SigningDate", contract.getSignDate() != null ? Date.valueOf(contract.getSignDate()) : null)
+                .addValue("ExpiryDate", contract.getEndDate() != null ? Date.valueOf(contract.getEndDate()) : null)
+                .addValue("Status", contract.getStatus())
+                .addValue("Terms", contract.getDescription());
+
+        var out = jdbcCall.execute(inParams);
+        Integer resultCode = (Integer) out.get("ResultCode");
+        String resultMsg = (String) out.get("ResultMsg");
+        if (resultCode == null || resultCode != 1) {
+            throw new BusinessException(resultMsg != null ? resultMsg : "创建合同失败");
+        }
+
+        Object newIdObj = out.get("NewContractID");
+        if (newIdObj instanceof Number) {
+            contract.setId(((Number) newIdObj).longValue());
+        }
+
+        return 1;
     }
 
     @Override
     public int deleteById(Long id) {
-        String sql = "DELETE FROM Contracts WHERE ContractID = ?";
-        return jdbcTemplate.update(sql, id);
+        return softDelete(id, 1L);
     }
 
     @Override
     public int update(Contract contract) {
-        String sql = "UPDATE Contracts SET ContractNumber=?, ContractName=?, ProjectID=?, EmployeeID=?, " +
-                     "CustomerID=?, Amount=?, SigningDate=?, ExpiryDate=?, Status=?, Terms=? " +
-                     "WHERE ContractID=?";
-        return jdbcTemplate.update(sql,
-            contract.getContractNo(),
-            contract.getContractName(),
-            contract.getProjectId(),
-            contract.getEmployeeId(),
-            contract.getClientId(),
-            contract.getAmount(),
-            contract.getSignDate() != null ? Date.valueOf(contract.getSignDate()) : null,
-            contract.getEndDate() != null ? Date.valueOf(contract.getEndDate()) : null,
-            contract.getStatus(),
-            contract.getDescription(),
-            contract.getId()
-        );
+        SimpleJdbcCall jdbcCall = new SimpleJdbcCall(jdbcTemplate)
+                .withSchemaName("dbo")
+                .withProcedureName("SP_UpdateContract")
+                .withoutProcedureColumnMetaDataAccess()
+                .declareParameters(
+                        new SqlParameter("ContractID", Types.BIGINT),
+                        new SqlParameter("ContractNumber", Types.NVARCHAR),
+                        new SqlParameter("ContractName", Types.NVARCHAR),
+                        new SqlParameter("ProjectID", Types.BIGINT),
+                        new SqlParameter("EmployeeID", Types.BIGINT),
+                        new SqlParameter("CustomerID", Types.BIGINT),
+                        new SqlParameter("Amount", Types.DECIMAL),
+                        new SqlParameter("SigningDate", Types.DATE),
+                        new SqlParameter("ExpiryDate", Types.DATE),
+                        new SqlParameter("Status", Types.VARCHAR),
+                        new SqlParameter("Terms", Types.NVARCHAR),
+                        new SqlOutParameter("ResultCode", Types.INTEGER),
+                        new SqlOutParameter("ResultMsg", Types.NVARCHAR));
+
+        MapSqlParameterSource inParams = new MapSqlParameterSource()
+                .addValue("ContractID", contract.getId())
+                .addValue("ContractNumber", contract.getContractNo())
+                .addValue("ContractName", contract.getContractName())
+                .addValue("ProjectID", contract.getProjectId())
+                .addValue("EmployeeID", contract.getEmployeeId())
+                .addValue("CustomerID", contract.getClientId())
+                .addValue("Amount", contract.getAmount())
+                .addValue("SigningDate", contract.getSignDate() != null ? Date.valueOf(contract.getSignDate()) : null)
+                .addValue("ExpiryDate", contract.getEndDate() != null ? Date.valueOf(contract.getEndDate()) : null)
+                .addValue("Status", contract.getStatus())
+                .addValue("Terms", contract.getDescription());
+
+        var out = jdbcCall.execute(inParams);
+        Integer resultCode = (Integer) out.get("ResultCode");
+        String resultMsg = (String) out.get("ResultMsg");
+        if (resultCode == null || resultCode != 1) {
+            throw new BusinessException(resultMsg != null ? resultMsg : "更新合同失败");
+        }
+        return 1;
     }
 
     @Override
@@ -169,8 +208,27 @@ public class ContractDaoImpl implements ContractDao {
     
     @Override
     public int softDelete(Long id, Long operatorId) {
-        String sql = "UPDATE Contracts SET IsDeleted = 1, DeletedBy = ?, DeletedAt = GETDATE() WHERE ContractID = ?";
-        return jdbcTemplate.update(sql, operatorId, id);
+        SimpleJdbcCall jdbcCall = new SimpleJdbcCall(jdbcTemplate)
+                .withSchemaName("dbo")
+                .withProcedureName("SP_SoftDeleteContract")
+                .withoutProcedureColumnMetaDataAccess()
+                .declareParameters(
+                        new SqlParameter("ContractID", Types.BIGINT),
+                        new SqlParameter("OperatorID", Types.BIGINT),
+                        new SqlOutParameter("ResultCode", Types.INTEGER),
+                        new SqlOutParameter("ResultMsg", Types.NVARCHAR));
+
+        MapSqlParameterSource inParams = new MapSqlParameterSource()
+                .addValue("ContractID", id)
+                .addValue("OperatorID", operatorId);
+
+        var out = jdbcCall.execute(inParams);
+        Integer resultCode = (Integer) out.get("ResultCode");
+        String resultMsg = (String) out.get("ResultMsg");
+        if (resultCode == null || resultCode != 1) {
+            throw new BusinessException(resultMsg != null ? resultMsg : "删除合同失败");
+        }
+        return 1;
     }
     
     @Override
@@ -181,7 +239,24 @@ public class ContractDaoImpl implements ContractDao {
     
     @Override
     public int restore(Long id) {
-        String sql = "UPDATE Contracts SET IsDeleted = 0, DeletedBy = NULL, DeletedAt = NULL WHERE ContractID = ?";
-        return jdbcTemplate.update(sql, id);
+        SimpleJdbcCall jdbcCall = new SimpleJdbcCall(jdbcTemplate)
+                .withSchemaName("dbo")
+                .withProcedureName("SP_RestoreContract")
+                .withoutProcedureColumnMetaDataAccess()
+                .declareParameters(
+                        new SqlParameter("ContractID", Types.BIGINT),
+                        new SqlOutParameter("ResultCode", Types.INTEGER),
+                        new SqlOutParameter("ResultMsg", Types.NVARCHAR));
+
+        MapSqlParameterSource inParams = new MapSqlParameterSource()
+                .addValue("ContractID", id);
+
+        var out = jdbcCall.execute(inParams);
+        Integer resultCode = (Integer) out.get("ResultCode");
+        String resultMsg = (String) out.get("ResultMsg");
+        if (resultCode == null || resultCode != 1) {
+            throw new BusinessException(resultMsg != null ? resultMsg : "恢复合同失败");
+        }
+        return 1;
     }
 }
