@@ -61,7 +61,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public boolean deletePayment(Long id) {
-        return paymentDao.deleteById(id) > 0;
+        return paymentDao.softDelete(id, 1L) > 0;
     }
 
     @Override

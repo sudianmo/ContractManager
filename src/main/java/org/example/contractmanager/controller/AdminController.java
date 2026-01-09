@@ -18,21 +18,21 @@ public class AdminController {
 
     @Autowired
     private ClientDao clientDao;
-    
+
     @Autowired
     private ProductDao productDao;
-    
+
     @Autowired
     private ProjectDao projectDao;
-    
+
     @Autowired
     private ContractDao contractDao;
-    
+
     @Autowired
     private PaymentDao paymentDao;
 
     // ==================== 客户回收站 ====================
-    
+
     /**
      * 查看已删除的客户列表
      */
@@ -41,7 +41,7 @@ public class AdminController {
         List<Customer> deletedClients = clientDao.selectDeleted();
         return Result.success(deletedClients);
     }
-    
+
     /**
      * 恢复已删除的客户
      */
@@ -53,22 +53,26 @@ public class AdminController {
         }
         return Result.error("恢复客户失败");
     }
-    
+
     /**
      * 永久删除客户（物理删除）
      * 注意：此操作不可逆
      */
     @DeleteMapping("/clients/permanent/{id}")
     public Result<Void> permanentDeleteClient(@PathVariable Long id) {
-        int result = clientDao.deleteById(id);
-        if (result > 0) {
-            return Result.success();
+        try {
+            int result = clientDao.deleteById(id);
+            if (result > 0) {
+                return Result.success();
+            }
+            return Result.error("永久删除客户失败");
+        } catch (Exception e) {
+            return Result.error("存在关联数据，无法永久删除");
         }
-        return Result.error("永久删除客户失败");
     }
 
     // ==================== 产品回收站 ====================
-    
+
     /**
      * 查看已删除的产品列表
      */
@@ -77,7 +81,7 @@ public class AdminController {
         List<Product> deletedProducts = productDao.selectDeleted();
         return Result.success(deletedProducts);
     }
-    
+
     /**
      * 恢复已删除的产品
      */
@@ -89,21 +93,25 @@ public class AdminController {
         }
         return Result.error("恢复产品失败");
     }
-    
+
     /**
      * 永久删除产品（物理删除）
      */
     @DeleteMapping("/products/permanent/{id}")
     public Result<Void> permanentDeleteProduct(@PathVariable Long id) {
-        int result = productDao.deleteById(id);
-        if (result > 0) {
-            return Result.success();
+        try {
+            int result = productDao.deleteById(id);
+            if (result > 0) {
+                return Result.success();
+            }
+            return Result.error("永久删除产品失败");
+        } catch (Exception e) {
+            return Result.error("存在关联数据，无法永久删除");
         }
-        return Result.error("永久删除产品失败");
     }
 
     // ==================== 项目回收站 ====================
-    
+
     /**
      * 查看已删除的项目列表
      */
@@ -112,7 +120,7 @@ public class AdminController {
         List<Project> deletedProjects = projectDao.selectDeleted();
         return Result.success(deletedProjects);
     }
-    
+
     /**
      * 恢复已删除的项目
      */
@@ -124,21 +132,25 @@ public class AdminController {
         }
         return Result.error("恢复项目失败");
     }
-    
+
     /**
      * 永久删除项目（物理删除）
      */
     @DeleteMapping("/projects/permanent/{id}")
     public Result<Void> permanentDeleteProject(@PathVariable Long id) {
-        int result = projectDao.deleteById(id);
-        if (result > 0) {
-            return Result.success();
+        try {
+            int result = projectDao.deleteById(id);
+            if (result > 0) {
+                return Result.success();
+            }
+            return Result.error("永久删除项目失败");
+        } catch (Exception e) {
+            return Result.error("存在关联数据，无法永久删除");
         }
-        return Result.error("永久删除项目失败");
     }
 
     // ==================== 合同回收站 ====================
-    
+
     /**
      * 查看已删除的合同列表
      */
@@ -147,7 +159,7 @@ public class AdminController {
         List<Contract> deletedContracts = contractDao.selectDeleted();
         return Result.success(deletedContracts);
     }
-    
+
     /**
      * 恢复已删除的合同
      */
@@ -159,21 +171,25 @@ public class AdminController {
         }
         return Result.error("恢复合同失败");
     }
-    
+
     /**
      * 永久删除合同（物理删除）
      */
     @DeleteMapping("/contracts/permanent/{id}")
     public Result<Void> permanentDeleteContract(@PathVariable Long id) {
-        int result = contractDao.deleteById(id);
-        if (result > 0) {
-            return Result.success();
+        try {
+            int result = contractDao.deleteById(id);
+            if (result > 0) {
+                return Result.success();
+            }
+            return Result.error("永久删除合同失败");
+        } catch (Exception e) {
+            return Result.error("存在关联数据，无法永久删除");
         }
-        return Result.error("永久删除合同失败");
     }
 
     // ==================== 支付回收站 ====================
-    
+
     /**
      * 查看已删除的支付记录列表
      */
@@ -182,7 +198,7 @@ public class AdminController {
         List<Payment> deletedPayments = paymentDao.selectDeleted();
         return Result.success(deletedPayments);
     }
-    
+
     /**
      * 恢复已删除的支付记录
      */
@@ -194,21 +210,25 @@ public class AdminController {
         }
         return Result.error("恢复支付记录失败");
     }
-    
+
     /**
      * 永久删除支付记录（物理删除）
      */
     @DeleteMapping("/payments/permanent/{id}")
     public Result<Void> permanentDeletePayment(@PathVariable Long id) {
-        int result = paymentDao.deleteById(id);
-        if (result > 0) {
-            return Result.success();
+        try {
+            int result = paymentDao.deleteById(id);
+            if (result > 0) {
+                return Result.success();
+            }
+            return Result.error("永久删除支付记录失败");
+        } catch (Exception e) {
+            return Result.error("存在关联数据，无法永久删除");
         }
-        return Result.error("永久删除支付记录失败");
     }
 
     // ==================== 批量操作 ====================
-    
+
     /**
      * 获取所有模块的已删除数据统计
      */

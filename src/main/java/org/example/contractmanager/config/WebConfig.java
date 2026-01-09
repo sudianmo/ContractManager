@@ -22,10 +22,7 @@ public class WebConfig implements WebMvcConfigurer {
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        // 拦截所有 /api/admin/** 路径的请求
-        registry.addInterceptor(adminAuthInterceptor)
-                .addPathPatterns("/api/admin/**")  // 拦截所有管理员接口
-                .excludePathPatterns("/api/admin/login");  // 排除登录接口（如果有的话）
+        // no-op
     }
 
     /**
