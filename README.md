@@ -42,7 +42,7 @@
 - `controller/TriggerTestController.java` - 触发器测试接口（人员 3）
 - `controller/ProcedureController.java` - 存储过程调用接口（人员 4）
 
-### 不需要修改的代码（AI 已完成）
+
 
 **基础框架：**
 
@@ -387,28 +387,8 @@ curl -X POST "http://localhost:8080/api/procedures/batch-update-status?oldStatus
 
 ---
 
-## AI 已完成功能汇总
+##已完成功能汇总
 
-**基础 CRUD（95%完成）：**
-
-- Entity 层：entity/Contract.java、entity/Client.java
-- DAO 层：dao/impl/ContractDaoImpl.java、dao/impl/ClientDaoImpl.java
-- Service 层：service/impl/ContractServiceImpl.java、service/impl/ClientServiceImpl.java
-- Controller 层：controller/ContractController.java、controller/ClientController.java
-
-**高级功能框架（40%完成）：**
-
-- 视图查询：ViewQueryController.java（框架已创建，需补充代码）
-- 触发器测试：TriggerTestController.java（框架已创建，需补充代码）
-- 存储过程调用：ProcedureController.java（框架已创建，需补充代码）
-
-**前端集成（90%完成）：**
-
-- 分页查询、关键字搜索、状态筛选、客户筛选
-- 状态映射中文化、渐变背景动画
-- CORS 跨域配置
-
----
 
 ## 常见问题
 
